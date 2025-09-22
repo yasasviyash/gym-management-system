@@ -1,0 +1,206 @@
+
+CREATE TABLE goals (
+  goal_id INT PRIMARY KEY AUTO_INCREMENT,
+  goal_name VARCHAR(50) NOT NULL
+);
+
+
+CREATE TABLE members (
+  member_id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(100) NOT NULL,
+  age INT,
+  gender VARCHAR(10),
+  phone VARCHAR(15),
+  email VARCHAR(100),
+  join_date DATE,
+  personality VARCHAR(50),
+  goal_id INT,
+  FOREIGN KEY (goal_id) REFERENCES goals(goal_id)
+);
+
+
+CREATE TABLE trainers (
+  trainer_id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(100) NOT NULL,
+  specialization VARCHAR(100),
+  phone VARCHAR(15),
+  email VARCHAR(100)
+);
+
+
+CREATE TABLE payment_plans (
+  plan_id INT PRIMARY KEY AUTO_INCREMENT,
+  plan_name VARCHAR(50) NOT NULL,
+  duration_months INT,
+  price DECIMAL(10,2)
+);
+
+
+CREATE TABLE subscriptions (
+  subscription_id INT PRIMARY KEY AUTO_INCREMENT,
+  member_id INT,
+  plan_id INT,
+  start_date DATE,
+  end_date DATE,
+  FOREIGN KEY (member_id) REFERENCES members(member_id),
+  FOREIGN KEY (plan_id) REFERENCES payment_plans(plan_id)
+);
+
+
+CREATE TABLE diet_plans (
+  diet_id INT PRIMARY KEY AUTO_INCREMENT,
+  personality VARCHAR(50) NOT NULL,
+  diet_description TEXT
+);
+
+
+CREATE TABLE member_diets (
+  member_id INT,
+  diet_id INT,
+  assigned_date DATE,
+  PRIMARY KEY (member_id, diet_id),
+  FOREIGN KEY (member_id) REFERENCES members(member_id),
+  FOREIGN KEY (diet_id) REFERENCES diet_plans(diet_id)
+);
+
+
+CREATE TABLE equipment (
+  equipment_id INT PRIMARY KEY AUTO_INCREMENT,
+  equipment_name VARCHAR(100) NOT NULL,
+  description TEXT
+);
+
+
+CREATE TABLE personality_equipment (
+  personality VARCHAR(50),
+  equipment_id INT,
+  PRIMARY KEY (personality, equipment_id),
+  FOREIGN KEY (equipment_id) REFERENCES equipment(equipment_id)
+);
+
+
+CREATE TABLE attendance (
+  attendance_id INT PRIMARY KEY AUTO_INCREMENT,
+  member_id INT,
+  attendance_date DATE,
+  status ENUM('Present', 'Absent') DEFAULT 'Present',
+  FOREIGN KEY (member_id) REFERENCES members(member_id)
+);
+
+
+CREATE TABLE trainer_assignments (
+  assignment_id INT PRIMARY KEY AUTO_INCREMENT,
+  member_id INT,
+  trainer_id INT,
+  assigned_date DATE,
+  FOREIGN KEY (member_id) REFERENCES members(member_id),
+  FOREIGN KEY (trainer_id) REFERENCES trainers(trainer_id)
+);
+
+
+INSERT INTO goals (goal_name) VALUES 
+('Weight Loss'), 
+('Muscle Gain'), 
+('Endurance');
+
+INSERT INTO payment_plans (plan_name, duration_months, price) VALUES
+('Monthly Plan', 1, 1500.00),
+('Quarterly Plan', 3, 4000.00),
+('Yearly Plan', 12, 15000.00);
+
+INSERT INTO diet_plans (personality, diet_description) VALUES
+('Athletic', 'High protein, moderate carbs, low fat diet'),
+('Sedentary', 'Low calorie, balanced nutrients diet'),
+('Balanced', 'Balanced diet with moderate protein and carbs');
+
+
+INSERT INTO equipment (equipment_name, description) VALUES
+('Treadmill', 'Cardio equipment for endurance and weight loss'),
+('Dumbbells', 'Strength training for muscle gain'),
+('Stationary Bike', 'Low impact cardio for endurance');
+
+
+INSERT INTO personality_equipment (personality, equipment_id) VALUES
+('Athletic', 2),  
+('Sedentary', 1), 
+('Balanced', 3);  
+
+
+INSERT INTO trainers (name, specialization, phone, email) VALUES
+('Anil Sharma', 'Strength Training', '9876543210', 'anil.sharma@example.com'),
+('Priya Singh', 'Cardio and Endurance', '9123456780', 'priya.singh@example.com');
+
+
+INSERT INTO members (name, age, gender, phone, email, join_date, personality, goal_id) VALUES
+('Rahul Kumar', 25, 'Male', '9876543210', 'rahul.kumar@example.com', CURDATE(), 'Athletic', 2),
+('Sneha Patel', 28, 'Female', '9123456789', 'sneha.patel@example.com', CURDATE(), 'Balanced', 1);
+
+
+INSERT INTO member_diets (member_id, diet_id, assigned_date)
+SELECT m.member_id, d.diet_id, CURDATE()
+FROM members m
+JOIN diet_plans d ON m.personality = d.personality
+WHERE m.name = 'Rahul Kumar';
+
+INSERT INTO member_diets (member_id, diet_id, assigned_date)
+SELECT m.member_id, d.diet_id, CURDATE()
+FROM members m
+JOIN diet_plans d ON m.personality = d.personality
+WHERE m.name = 'Sneha Patel';
+
+
+INSERT INTO trainer_assignments (member_id, trainer_id, assigned_date) VALUES
+(1, 1, CURDATE()),
+(2, 2, CURDATE());
+
+
+INSERT INTO subscriptions (member_id, plan_id, start_date, end_date) VALUES
+(1, 1, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 MONTH)),
+(2, 2, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 3 MONTH));
+
+
+INSERT INTO attendance (member_id, attendance_date, status) VALUES
+(1, CURDATE(), 'Present'),
+(2, CURDATE(), 'Present');
+
+SELECT m.name, g.goal_name
+FROM members m
+LEFT JOIN goals g ON m.goal_id = g.goal_id;
+
+SELECT m.name, p.plan_name, s.start_date, s.end_date
+FROM subscriptions s
+JOIN members m ON s.member_id = m.member_id
+JOIN payment_plans p ON s.plan_id = p.plan_id
+WHERE CURDATE() BETWEEN s.start_date AND s.end_date;
+
+SELECT m.name, t.name AS trainer_name
+FROM trainer_assignments ta
+JOIN members m ON ta.member_id = m.member_id
+JOIN trainers t ON ta.trainer_id = t.trainer_id
+WHERE t.trainer_id = 1;
+
+SELECT d.diet_description
+FROM member_diets md
+JOIN diet_plans d ON md.diet_id = d.diet_id
+WHERE md.member_id = 1;
+
+SELECT attendance_date, status
+FROM attendance
+WHERE member_id = 1 AND attendance_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY);
+
+SELECT e.equipment_name, e.description
+FROM members m
+JOIN personality_equipment pe ON m.personality = pe.personality
+JOIN equipment e ON pe.equipment_id = e.equipment_id
+WHERE m.member_id = 1;
+
+SELECT g.goal_name, COUNT(m.member_id) AS member_count
+FROM members m
+JOIN goals g ON m.goal_id = g.goal_id
+GROUP BY g.goal_name;
+
+SELECT m.name, COUNT(a.attendance_id) AS attendance_count
+FROM attendance a
+JOIN members m ON a.member_id = m.member_id
+WHERE a.attendance_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND a.status = 'Present'
+GROUP BY m.name;
