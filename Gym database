@@ -163,6 +163,22 @@ INSERT INTO attendance (member_id, attendance_date, status) VALUES
 (1, CURDATE(), 'Present'),
 (2, CURDATE(), 'Present');
 
+SELECT name, goal_id FROM members;
+
+SELECT member_id, plan_id, start_date, end_date
+FROM subscriptions
+WHERE CURDATE() BETWEEN start_date AND end_date;
+
+SELECT trainer_id FROM trainer_assignments WHERE member_id = 1;
+
+SELECT diet_id FROM member_diets WHERE member_id = 1;
+
+SELECT equipment_id FROM personality_equipment WHERE personality = 'Athletic';
+
+SELECT goal_id, COUNT(member_id) AS member_count
+FROM members
+GROUP BY goal_id;
+
 SELECT m.name, g.goal_name
 FROM members m
 LEFT JOIN goals g ON m.goal_id = g.goal_id;
